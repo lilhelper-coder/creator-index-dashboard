@@ -67,8 +67,7 @@
 
 ### Intelligence (6)
 - Gemini: Revenue modeling
-- Qwen: Cultural validation
-- Supporting analysts (4)
+- Qwen (CGTO): Chief Global & Technical Officer - Cultural accuracy, translation, cross-border sentiment + Technical Safety Net (backup coder)- Supporting analysts (4)
 
 ### Engineering (8)
 - DeepSeek: Backend
@@ -134,5 +133,39 @@
 - ✅ Dashboard displays latest
 
 ---
+
+**This is the SINGLE SOURCE OF TRUTH. Update once, cascades everywhere.**
+
+
+## 🔄 AGENTIC LOOP PROTOCOL
+
+**Status:** ✅ ACTIVE (Per Gemini CIO Directive - Jan 1, 2026 23:00 PST)
+
+### Universal Agent Workflow
+
+Every agent must follow this strict execution protocol:
+
+1. **PLAN**: Break user request into sub-tasks
+2. **EXECUTE**: Use tools (Search, Code, API) to complete tasks  
+3. **REFLECT**: Compare result against Success Criteria ("Goal Achieved?" Check)
+4. **REFINE**: If check fails, adjust plan and re-execute
+5. **DELIVER**: Output final result only after Goal Check passes
+
+### Dashboard Loop State Indicators
+
+The dashboard displays current agent Loop State:
+
+- 🔵 **Planning**: Breaking down the task
+- 🟡 **Executing**: Running tools/searches
+- 🟣 **Reflecting**: Checking work against Success Criteria  
+- 🔴 **Refining**: Error detected, retrying
+- 🟢 **Complete**: Goal Achieved, awaiting next task
+
+### Critical Rules
+
+- ⚠️ No agent can mark task "Complete" without passing Reflection phase
+- ⚠️ Maximum 3 loop iterations before requesting human help
+- ⚠️ "Goal Achieved?" must have explicit Success Criteria
+- ✅ Loop State visible on dashboard for CEO monitoring
 
 **This is the SINGLE SOURCE OF TRUTH. Update once, cascades everywhere.**

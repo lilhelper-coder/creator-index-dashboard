@@ -101,16 +101,6 @@ export default function Workbench() {
 		},
 	];
 
-	const chartOptions = useChart({
-		xaxis: { categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] },
-		chart: { toolbar: { show: false } },
-		grid: { show: false },
-		stroke: { curve: "smooth" },
-		dataLabels: { enabled: false },
-		yaxis: { show: false },
-		legend: { show: false },
-	});
-
 	const platformDonutOptions = useChart({
 		labels: Object.keys(metrics.platforms),
 		legend: { show: false },

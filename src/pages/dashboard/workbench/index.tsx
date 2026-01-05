@@ -1,102 +1,108 @@
-import avatar1 from "@/assets/images/avatars/avatar-1.png";
-import avatar2 from "@/assets/images/avatars/avatar-2.png";
-import avatar3 from "@/assets/images/avatars/avatar-3.png";
-import avatar4 from "@/assets/images/avatars/avatar-4.png";
-import avatar5 from "@/assets/images/avatars/avatar-5.png";
 import { Chart, useChart } from "@/components/chart";
 import Icon from "@/components/icon/icon";
-import { GLOBAL_CONFIG } from "@/global-config";
-import { Avatar, AvatarImage } from "@/ui/avatar";
 import { Button } from "@/ui/button";
 import { Card, CardContent } from "@/ui/card";
 import { Progress } from "@/ui/progress";
 import { Text, Title } from "@/ui/typography";
 import { rgbAlpha } from "@/utils/theme";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BannerCard from "./banner-card";
+import { getMetrics, getTopCreators, getRecentActivity, type Creator, type AgentActivity, type DashboardMetrics } from "@/services/creatorIndexService";
 
-const quickStats = [
-	{
-		icon: "solar:wallet-outline",
-		label: "All Earnings",
-		value: "$3,020",
-		percent: 30.6,
-		color: "#3b82f6",
-		chart: [12, 18, 14, 16, 12, 10, 14, 18, 16, 14, 12, 10],
-	},
-	{
-		icon: "solar:graph-outline",
-		label: "Page Views",
-		value: "290K+",
-		percent: 30.6,
-		color: "#f59e42",
-		chart: [8, 12, 10, 14, 18, 16, 14, 12, 10, 14, 18, 16],
-	},
-	{
-		icon: "solar:checklist-outline",
-		label: "Total Task",
-		value: "839",
-		percent: 0,
-		color: "#10b981",
-		chart: [10, 14, 12, 16, 18, 14, 12, 10, 14, 18, 16, 12],
-	},
-	{
-		icon: "solar:download-outline",
-		label: "Download",
-		value: "2,067",
-		percent: -30.6,
-		color: "#ef4444",
-		chart: [16, 14, 12, 10, 14, 18, 16, 12, 10, 14, 18, 16],
-	},
-];
+function formatFollowers(num: number): string {
+	if (num >= 1000000000) return `${(num / 1000000000).toFixed(1)}B`;
+	if (num >= 1000000) return `${(num / 1000000).toFixed(0)}M`;
+	if (num >= 1000) return `${(num / 1000).toFixed(0)}K`;
+	return num.toString();
+}
 
-const monthlyRevenue = {
-	series: [
-		{
-			name: "Revenue",
-			data: [30, 40, 35, 50, 49, 70, 91, 60, 50, 55, 60, 65],
-		},
-	],
-	categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-	percent: 5.44,
-};
+function getPlatformColor(platform: string): string {
+	const colors: Record<string, string> = {
+		youtube: "#FF0000",
+		twitch: "#9146FF",
+		tiktok: "#000000",
+		bilibili: "#00A1D6",
+		instagram: "#E4405F",
+	};
+	return colors[platform] || "#3b82f6";
+}
 
-const projectTasks = [
-	{ label: "Horizontal Layout", color: "#3b82f6" },
-	{ label: "Invoice Generator", color: "#f59e42" },
-	{ label: "Package Upgrades", color: "#fbbf24" },
-	{ label: "Figma Auto Layout", color: "#10b981" },
-];
-
-const projectUsers = [
-	{ avatar: avatar1, name: "John" },
-	{ avatar: avatar2, name: "Wiliam" },
-	{ avatar: avatar3, name: "Kevin" },
-	{ avatar: avatar4, name: "Maciej" },
-	{ avatar: avatar5, name: "Kamil" },
-];
-const transactions = [
-	{ icon: "mdi:spotify", name: "Spotify Music", id: "#T11032", amount: 10000, time: "06:30 pm", status: "up" },
-	{ icon: "mdi:medium", name: "Medium", id: "#T11032", amount: -26, time: "08:30 pm", status: "down" },
-	{ icon: "mdi:uber", name: "Uber", id: "#T11032", amount: 210000, time: "08:40 pm", status: "up" },
-	{ icon: "mdi:taxi", name: "Ola Cabs", id: "#T11032", amount: 210000, time: "07:40 pm", status: "up" },
-];
-
-const totalIncome = {
-	series: [44, 55, 41, 17],
-	labels: ["Income", "Download", "Rent", "Views"],
-	details: [
-		{ label: "Income", value: 23876 },
-		{ label: "Download", value: 23876 },
-		{ label: "Rent", value: 23876 },
-		{ label: "Views", value: 23876 },
-	],
-};
+function getPlatformIcon(platform: string): string {
+	const icons: Record<string, string> = {
+		youtube: "mdi:youtube",
+		twitch: "mdi:twitch",
+		tiktok: "ic:baseline-tiktok",
+		bilibili: "simple-icons:bilibili",
+		instagram: "mdi:instagram",
+	};
+	return icons[platform] || "mdi:account";
+}
 
 export default function Workbench() {
-	const [activeTab, setActiveTab] = useState("All Transaction");
+	const [metrics, setMetrics] = useState<DashboardMetrics>({ total_creators: 0, active_blockers: 0, total_employees: 0, platforms: {} });
+	const [topCreators, setTopCreators] = useState<Creator[]>([]);
+	const [recentActivity, setRecentActivity] = useState<AgentActivity[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [activeTab, setActiveTab] = useState("All Activity");
+
+	useEffect(() => {
+		async function fetchData() {
+			setLoading(true);
+			try {
+				const [metricsData, creatorsData, activityData] = await Promise.all([
+					getMetrics(),
+					getTopCreators(10),
+					getRecentActivity(10)
+				]);
+				setMetrics(metricsData);
+				setTopCreators(creatorsData);
+				setRecentActivity(activityData);
+			} catch (error) {
+				console.error("Failed to fetch data:", error);
+			} finally {
+				setLoading(false);
+			}
+		}
+		fetchData();
+	}, []);
+
+	const quickStats = [
+		{
+			icon: "mdi:account-group",
+			label: "Total Creators",
+			value: metrics.total_creators.toString(),
+			percent: 0,
+			color: "#3b82f6",
+			chart: [12, 18, 14, 16, 12, 10, 14, 18, 16, 14, 12, metrics.total_creators > 50 ? 20 : 10],
+		},
+		{
+			icon: "mdi:youtube",
+			label: "YouTube",
+			value: (metrics.platforms.youtube || 0).toString(),
+			percent: 0,
+			color: "#FF0000",
+			chart: [8, 12, 10, 14, 18, 16, 14, 12, 10, 14, 18, 16],
+		},
+		{
+			icon: "mdi:twitch",
+			label: "Twitch",
+			value: (metrics.platforms.twitch || 0).toString(),
+			percent: 0,
+			color: "#9146FF",
+			chart: [10, 14, 12, 16, 18, 14, 12, 10, 14, 18, 16, 12],
+		},
+		{
+			icon: "simple-icons:bilibili",
+			label: "Bilibili",
+			value: (metrics.platforms.bilibili || 0).toString(),
+			percent: 0,
+			color: "#00A1D6",
+			chart: [16, 14, 12, 10, 14, 18, 16, 12, 10, 14, 18, 16],
+		},
+	];
+
 	const chartOptions = useChart({
-		xaxis: { categories: monthlyRevenue.categories },
+		xaxis: { categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] },
 		chart: { toolbar: { show: false } },
 		grid: { show: false },
 		stroke: { curve: "smooth" },
@@ -104,19 +110,28 @@ export default function Workbench() {
 		yaxis: { show: false },
 		legend: { show: false },
 	});
-	const donutOptions = useChart({
-		labels: totalIncome.labels,
+
+	const platformDonutOptions = useChart({
+		labels: Object.keys(metrics.platforms),
 		legend: { show: false },
 		dataLabels: { enabled: false },
 		plotOptions: { pie: { donut: { size: "70%" } } },
+		colors: Object.keys(metrics.platforms).map(p => getPlatformColor(p)),
 	});
 
-	// throw new Error("test error"); // 注释掉直接抛错，改用演示组件
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center h-64">
+				<Text variant="body2">Loading Creator Index data...</Text>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex flex-col gap-4 w-full">
 			<BannerCard />
-			{/* 顶部四个统计卡片 */}
+
+			{/* Top Stats */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 				{quickStats.map((stat) => (
 					<Card key={stat.label} className="flex flex-col justify-between h-full">
@@ -133,16 +148,12 @@ export default function Workbench() {
 								<Title as="h3" className="text-2xl font-bold">
 									{stat.value}
 								</Title>
-								<span
-									className={`text-xs flex items-center gap-1 font-bold ${stat.percent > 0 ? "text-green-500" : stat.percent < 0 ? "text-red-500" : ""}`}
-								>
-									{stat.percent > 0 ? (
-										<Icon icon="mdi:arrow-up" size={16} />
-									) : stat.percent < 0 ? (
-										<Icon icon="mdi:arrow-down" size={16} />
-									) : null}
-									{stat.percent !== 0 ? `${Math.abs(stat.percent)}%` : stat.label === "Total Task" ? "New" : null}
-								</span>
+								{stat.percent !== 0 && (
+									<span className={`text-xs flex items-center gap-1 font-bold ${stat.percent > 0 ? "text-green-500" : "text-red-500"}`}>
+										<Icon icon={stat.percent > 0 ? "mdi:arrow-up" : "mdi:arrow-down"} size={16} />
+										{Math.abs(stat.percent)}%
+									</span>
+								)}
 							</div>
 							<div className="w-full h-10 mt-2">
 								<Chart
@@ -163,111 +174,99 @@ export default function Workbench() {
 				))}
 			</div>
 
-			{/* 月度收入+项目进度区块 */}
+			{/* Top Creators + Platform Distribution */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 				<Card className="lg:col-span-2">
 					<CardContent className="p-6">
-						<div className="flex items-center justify-between mb-2">
+						<div className="flex items-center justify-between mb-4">
 							<Text variant="body2" className="font-semibold">
-								Monthly Revenue
+								Top Creators by Followers
 							</Text>
-							<span className="flex items-center gap-1 text-green-500 font-bold text-sm">
-								<Icon icon="mdi:arrow-up" size={16} />
-								{monthlyRevenue.percent}%
-							</span>
+							<span className="text-sm text-gray-500">{topCreators.length} creators</span>
 						</div>
-						<Chart type="area" height={220} options={chartOptions} series={monthlyRevenue.series} />
+						<div className="overflow-x-auto">
+							<table className="w-full text-sm">
+								<thead>
+									<tr className="border-b">
+										<th className="py-2 text-left">Creator</th>
+										<th className="py-2 text-left">Platform</th>
+										<th className="py-2 text-right">Followers</th>
+										<th className="py-2 text-right">Category</th>
+									</tr>
+								</thead>
+								<tbody>
+									{topCreators.map((creator, idx) => (
+										<tr key={creator.id} className="border-b last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800">
+											<td className="py-3">
+												<div className="flex items-center gap-2">
+													<span className="text-gray-400 w-6">{idx + 1}.</span>
+													<div>
+														<div className="font-semibold">{creator.display_name}</div>
+														<div className="text-xs text-gray-500">@{creator.username}</div>
+													</div>
+												</div>
+											</td>
+											<td className="py-3">
+												<div className="flex items-center gap-2">
+													<Icon icon={getPlatformIcon(creator.platform)} size={16} color={getPlatformColor(creator.platform)} />
+													<span className="capitalize">{creator.platform}</span>
+												</div>
+											</td>
+											<td className="py-3 text-right font-bold">
+												{formatFollowers(creator.followers)}
+											</td>
+											<td className="py-3 text-right text-gray-500">
+												{creator.category || "N/A"}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
 					</CardContent>
 				</Card>
-				<Card className="flex flex-col gap-4 p-6">
-					<Text variant="body2" className="font-semibold  mb-2">
-						Project - {GLOBAL_CONFIG.appName}
+
+				<Card className="flex flex-col p-6">
+					<Text variant="body2" className="font-semibold mb-4">
+						Platform Distribution
 					</Text>
-					<div className="flex items-center justify-between mb-2">
-						<Text variant="body2">Release v1.2.0</Text>
-						<span className="text-xs font-bold text-blue-500">70%</span>
+					<div className="flex-1 flex flex-col items-center justify-center">
+						{Object.keys(metrics.platforms).length > 0 ? (
+							<>
+								<Chart
+									type="donut"
+									height={180}
+									options={platformDonutOptions}
+									series={Object.values(metrics.platforms)}
+								/>
+								<div className="w-full mt-4">
+									{Object.entries(metrics.platforms).map(([platform, count]) => (
+										<div key={platform} className="flex items-center justify-between mb-2">
+											<div className="flex items-center gap-2">
+												<Icon icon={getPlatformIcon(platform)} size={16} color={getPlatformColor(platform)} />
+												<Text variant="body2" className="capitalize">{platform}</Text>
+											</div>
+											<span className="font-bold">{count}</span>
+										</div>
+									))}
+								</div>
+							</>
+						) : (
+							<Text variant="body2" className="text-gray-500">No platform data</Text>
+						)}
 					</div>
-					<Progress value={70} />
-					<ul className="flex flex-col gap-2 mt-2 mb-4">
-						{projectTasks.map((task) => (
-							<li key={task.label} className="flex items-center gap-2">
-								<span className="inline-block w-2 h-2 rounded-full" style={{ background: task.color }} />
-								<Text variant="body2">{task.label}</Text>
-							</li>
-						))}
-					</ul>
-					<Button className="w-full mt-auto" size="sm">
-						<Icon icon="mdi:plus" size={18} /> Add task
-					</Button>
 				</Card>
 			</div>
 
-			{/* 项目概览区块 */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-				<Card className="lg:col-span-2 flex flex-col gap-4 p-6">
-					<Text variant="body2" className="font-semibold mb-2">
-						Project overview
-					</Text>
-					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-						<div>
-							<Text variant="body2">Total Tasks</Text>
-							<Title as="h3" className="text-xl font-bold">
-								34,686
-							</Title>
-						</div>
-						<div>
-							<Text variant="body2">Pending Tasks</Text>
-							<Title as="h3" className="text-xl font-bold">
-								3,786
-							</Title>
-						</div>
-						<div className="flex-1 flex items-center justify-end">
-							<Button className="w-48" size="sm" variant="default">
-								<Icon icon="mdi:plus" size={18} /> Add project
-							</Button>
-						</div>
-					</div>
-					<div className="w-full h-16 mt-4">
-						<Chart
-							type="line"
-							height={60}
-							options={useChart({
-								chart: { sparkline: { enabled: true } },
-								colors: ["#ef4444"],
-								grid: { show: false },
-								yaxis: { show: false },
-								tooltip: { enabled: false },
-							})}
-							series={[{ data: [10, 20, 15, 30, 25, 40, 35, 20] }]}
-						/>
-					</div>
-				</Card>
-				<Card className="flex flex-col gap-4 p-6 items-center justify-center">
-					<Text variant="body2" className="font-semibold mb-2">
-						{GLOBAL_CONFIG.appName}
-					</Text>
-					<div className="flex -space-x-2 mb-2">
-						{projectUsers.map((user) => (
-							<Avatar key={user.name} className="inline-block w-8 h-8 rounded-full">
-								<AvatarImage src={user.avatar} />
-							</Avatar>
-						))}
-					</div>
-					<Button className="w-10 h-10 rounded-full flex items-center justify-center" size="icon" variant="secondary">
-						<Icon icon="mdi:plus" size={20} />
-					</Button>
-				</Card>
-			</div>
-
-			{/* 交易+收入区块 */}
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-				<Card className="lg:col-span-2 flex flex-col p-6">
+			{/* Recent Activity */}
+			<div className="grid grid-cols-1 gap-4">
+				<Card className="flex flex-col p-6">
 					<div className="flex items-center gap-4 mb-4">
 						<Text variant="body2" className="font-semibold">
-							Transactions
+							Recent AI Agent Activity
 						</Text>
 						<div className="flex gap-2">
-							{["All Transaction", "Success", "Pending"].map((tab) => (
+							{["All Activity", "Completed", "In Progress"].map((tab) => (
 								<Button
 									key={tab}
 									size="sm"
@@ -279,66 +278,113 @@ export default function Workbench() {
 							))}
 						</div>
 					</div>
-					<div className="flex-1 overflow-x-auto">
+					<div className="overflow-x-auto">
 						<table className="w-full text-sm">
+							<thead>
+								<tr className="border-b">
+									<th className="py-2 text-left">Agent</th>
+									<th className="py-2 text-left">Task</th>
+									<th className="py-2 text-left">Status</th>
+									<th className="py-2 text-left">Time</th>
+								</tr>
+							</thead>
 							<tbody>
-								{transactions.map((tx) => (
-									<tr key={tx.name} className="border-b last:border-0">
-										<td className="py-2 w-12">
-											<span className="inline-flex items-center justify-center w-10 h-10 rounded-full">
-												<Icon icon={tx.icon} size={20} />
+								{recentActivity
+									.filter(a => activeTab === "All Activity" ||
+										(activeTab === "Completed" && a.status === "completed") ||
+										(activeTab === "In Progress" && a.status === "in_progress"))
+									.map((activity) => (
+									<tr key={activity.id} className="border-b last:border-0">
+										<td className="py-3">
+											<div className="flex items-center gap-2">
+												<div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+													<Icon icon="mdi:robot" size={16} color="#3b82f6" />
+												</div>
+												<span className="font-semibold">{activity.agent_name}</span>
+											</div>
+										</td>
+										<td className="py-3">
+											<div>
+												<div className="font-medium">{activity.task}</div>
+												{activity.notes && (
+													<div className="text-xs text-gray-500 truncate max-w-md">{activity.notes}</div>
+												)}
+											</div>
+										</td>
+										<td className="py-3">
+											<span className={`px-2 py-1 rounded-full text-xs font-bold ${
+												activity.status === "completed" ? "bg-green-100 text-green-700" :
+												activity.status === "in_progress" ? "bg-blue-100 text-blue-700" :
+												"bg-gray-100 text-gray-700"
+											}`}>
+												{activity.status}
 											</span>
 										</td>
-										<td className="py-2">
-											<div className="font-semibold">{tx.name}</div>
-											<div className="text-xs">{tx.id}</div>
-										</td>
-										<td className="py-2 text-right font-bold">
-											{tx.amount > 0 ? "+" : "-"}${Math.abs(tx.amount).toLocaleString()}
-										</td>
-										<td className="py-2 text-right">
-											<span className={`text-xs font-bold ${tx.status === "up" ? "text-green-500" : "text-red-500"}`}>
-												{tx.status === "up" ? (
-													<Icon icon="mdi:arrow-up" size={14} />
-												) : (
-													<Icon icon="mdi:arrow-down" size={14} />
-												)}{" "}
-												{tx.status === "up" ? "+" : "-"}10.6%
-											</span>
+										<td className="py-3 text-gray-500">
+											{new Date(activity.created_at).toLocaleString()}
 										</td>
 									</tr>
 								))}
+								{recentActivity.length === 0 && (
+									<tr>
+										<td colSpan={4} className="py-8 text-center text-gray-500">
+											No recent activity
+										</td>
+									</tr>
+								)}
 							</tbody>
 						</table>
 					</div>
-					<div className="flex items-center justify-between mt-4 gap-2">
-						<Button variant="outline" className="flex-1">
-							View all
-						</Button>
-						<Button className="flex-1">Create new</Button>
-					</div>
 				</Card>
-				<Card className="flex flex-col p-6">
-					<Text variant="body2" className="font-semibold  mb-2">
-						Total Income
+			</div>
+
+			{/* Project Status */}
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+				<Card className="lg:col-span-2 flex flex-col gap-4 p-6">
+					<Text variant="body2" className="font-semibold mb-2">
+						Creator Index Progress
 					</Text>
-					<div className="flex-1 flex flex-col items-center justify-center">
-						<Chart type="donut" height={180} options={donutOptions} series={totalIncome.series} />
-						<div className="w-full mt-4">
-							{totalIncome.details.map((item, i) => (
-								<div key={item.label} className="flex items-center justify-between mb-2">
-									<div className="flex items-center gap-2">
-										<span
-											className={"inline-block w-3 h-3 rounded-full"}
-											style={{ background: ["#3b82f6", "#f59e42", "#10b981", "#6366f1"][i] }}
-										/>
-										<Text variant="body2">{item.label}</Text>
-									</div>
-									<span className="font-bold">${item.value.toLocaleString()}</span>
-								</div>
-							))}
+					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+						<div>
+							<Text variant="body2">Total Creators</Text>
+							<Title as="h3" className="text-xl font-bold">
+								{metrics.total_creators}
+							</Title>
+						</div>
+						<div>
+							<Text variant="body2">AI Employees</Text>
+							<Title as="h3" className="text-xl font-bold">
+								{metrics.total_employees}
+							</Title>
+						</div>
+						<div>
+							<Text variant="body2">Target</Text>
+							<Title as="h3" className="text-xl font-bold">
+								100 Creators
+							</Title>
 						</div>
 					</div>
+					<div className="mt-4">
+						<div className="flex items-center justify-between mb-2">
+							<Text variant="body2">Progress to 100 Creators</Text>
+							<span className="text-xs font-bold text-blue-500">{Math.min(100, metrics.total_creators)}%</span>
+						</div>
+						<Progress value={Math.min(100, metrics.total_creators)} />
+					</div>
+				</Card>
+				<Card className="flex flex-col gap-4 p-6 items-center justify-center">
+					<Text variant="body2" className="font-semibold mb-2">
+						Creator Index
+					</Text>
+					<div className="text-center">
+						<Title as="h2" className="text-4xl font-bold text-blue-600">
+							{metrics.total_creators}
+						</Title>
+						<Text variant="body2" className="text-gray-500">Creators Indexed</Text>
+					</div>
+					<Button className="w-full mt-4" size="sm">
+						<Icon icon="mdi:plus" size={18} /> Add Creator
+					</Button>
 				</Card>
 			</div>
 		</div>

@@ -31,7 +31,7 @@ export default function BannerCard() {
 							</Text>
 							<div className="flex gap-6 mt-4">
 								<div className="text-center">
-									<div className="text-3xl font-bold text-white">70</div>
+									<div className="text-3xl font-bold text-white">100</div>
 									<div className="text-sm text-white/80">Creators</div>
 								</div>
 								<div className="text-center">
